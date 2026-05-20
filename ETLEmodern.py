@@ -5,13 +5,14 @@ import numpy as np
 import math
 
 model = YOLO('yolov8n.pt')
-video_path = "C:\Radit\Radit's Stuff\Project\ETLE\.venv\Moving Foreground Morning.mp4"
+video_path = "Moving Foreground Morning.mp4"
 cap = cv2.VideoCapture(video_path)
 
 if not cap.isOpened():
     print("Error: Could not open video.")
     exit()
 
+frame_count = 0
 fps = cap.get(cv2.CAP_PROP_FPS)
 print("FPS:", fps)
 
@@ -27,6 +28,7 @@ previous_positions = {}
 
 
 while True:
+    frame_count += 1
     ret, frame = cap.read()
     if not ret:
         break
@@ -49,19 +51,18 @@ while True:
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             cv2.circle(frame, (cx, cy), 5, (255, 0, 0), -1)
 
-            current_time = time.time()
-
             if track_id in previous_positions:
                 prev_cy = previous_positions[track_id]
 #Kendaraan lewat garis pertama
                 if prev_cy < LINE_Y1 and cy >= LINE_Y1:
 
                     if track_id not in vehicle_times:
-                        vehicle_times[track_id] = current_time
+                        vehicle_times[track_id] = frame_count
          #Kendaraan Lewat garis kedua       
                 if prev_cy < LINE_Y2 and cy >= LINE_Y2:
                     if track_id in vehicle_times and track_id not in vehicle_speeds:
-                        time_taken = current_time - vehicle_times[track_id]
+                        frame_difference = frame_count - vehicle_times[track_id]
+                        time_taken = frame_difference / fps
 
                         if time_taken > 0:
                             speed_mps = real_world_distance / time_taken
