@@ -4,8 +4,8 @@ import time
 import numpy as np
 import math
 
-model = YOLO('yolov8n.pt')
-video_path = "Moving Foreground Morning.mp4"
+model = YOLO('best.pt')
+video_path = "based_video.mp4"
 cap = cv2.VideoCapture(video_path)
 
 if not cap.isOpened():
@@ -16,19 +16,16 @@ frame_count = 0
 fps = cap.get(cv2.CAP_PROP_FPS)
 print("FPS:", fps)
 
-LINE_Y1 = 400
-LINE_Y2 = 500
-LINE_Y3 = 500
-LINE_Y4 = 400
+LINE_Y1 = 345
+LINE_Y2 = 461
 
-real_world_distance = 10  # meters
+real_world_distance = 18  # meters
 
 vehicle_times_in = {}
 vehicle_times_out = {}  
 vehicle_speeds = {}
 previous_positions = {}
-
-
+all_tracked_ids = set()
 
 while True:
     frame_count += 1
@@ -36,12 +33,10 @@ while True:
     if not ret:
         break
 
-    results = model.track(frame, persist=True, tracker="bytetrack.yaml", conf=0.4, iou=0.5, classes=[2, 3, 5, 7], verbose=False)  # Filter for vehicles (car, motorcycle, bus, truck)
+    results = model.track(frame, persist=True, tracker="bytetrack.yaml", conf=0.4, iou=0.5, verbose=False)  # Filter for vehicles (car, motorcycle, bus, truck)
 
     cv2.line(frame, (0, LINE_Y1), (frame.shape[1], LINE_Y1), (0, 255, 0), 2)
     cv2.line(frame, (0, LINE_Y2), (frame.shape[1], LINE_Y2), (0, 255, 0), 2)
-    cv2.line(frame, (0, LINE_Y3), (frame.shape[1], LINE_Y3), (0, 255, 0), 2)
-    cv2.line(frame, (0, LINE_Y4), (frame.shape[1], LINE_Y4), (0, 255, 0), 2)
 
     if results[0].boxes.id is not None:
         boxes = results[0].boxes.xyxy.cpu().numpy()
@@ -49,11 +44,10 @@ while True:
 
         for box, track_id in zip(boxes, ids):
             track_id = int(track_id)
+            all_tracked_ids.add(track_id)
             x1, y1, x2, y2 = map(int, box)
             cx = int((x1 + x2) / 2)
             cy = y2
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            cv2.circle(frame, (cx, cy), 5, (255, 0, 0), -1)
 
             if track_id in previous_positions:
                 prev_cy = previous_positions[track_id]
@@ -74,11 +68,11 @@ while True:
 
                             vehicle_speeds[track_id] = speed_kmph
            #Outgoing Vehicle                 
-                if prev_cy > LINE_Y3 and cy <= LINE_Y3:
+                if prev_cy > LINE_Y2 and cy <= LINE_Y2:
                     if track_id not in vehicle_times_out:
                         vehicle_times_out[track_id] = frame_count
 
-                if prev_cy > LINE_Y4 and cy <= LINE_Y4:
+                if prev_cy > LINE_Y1 and cy <= LINE_Y1:
                     if track_id in vehicle_times_out and track_id not in vehicle_speeds:
                         frame_difference = frame_count - vehicle_times_out[track_id]
                         time_taken = frame_difference / fps
@@ -91,23 +85,32 @@ while True:
 
             previous_positions[track_id] = cy
 
-            
-
+            box_color = (0 ,255, 0)
 
             if track_id in vehicle_speeds:
+                if vehicle_speeds[track_id] > 60 : 
+                    box_color = (0, 0, 255)
+
                 speed_text = f'ID: {int(track_id)} Speed: {vehicle_speeds[track_id]:.2f} km/h'
             else : 
                 speed_text = f'ID: {int(track_id)} Speed: Calculating...'
-            
-            cv2.putText(frame, speed_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2) 
+            cv2.rectangle(frame, (x1,y1), (x2,y2), box_color, 2)
+            cv2.circle(frame, (cx, cy), 5, box_color, - 1)
+            cv2.putText(frame, speed_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, box_color, 2) 
 
-            cv2.putText(frame, "LINE", (20, LINE_Y1 - 10),
-                        cv2.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.7, (0,255,0), 2)     
+            print(f"ID : {track_id}, CY: {cy}") 
 
-            cv2.putText(frame, "LINE", (20, LINE_Y2 - 10),
-                        cv2.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.7, (0,255,0), 2)
+    cv2.putText(frame, "Garis Atas", (20, LINE_Y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+    cv2.putText(frame, "Garis Bawah", (20, LINE_Y2 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
-            print(f"ID : {track_id}, CY: {cy}")   
+    total_vehicles = len(all_tracked_ids)
+    calculated_vehicles = len(vehicle_speeds)
+    uncalculated_vehicles = total_vehicles - calculated_vehicles
+
+    cv2.putText(frame, f"Total ID : {total_vehicles}", (20,40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,0),2)
+    cv2.putText(frame, f"Calculated : {calculated_vehicles}", (20,70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (165,255,0),2)
+    cv2.putText(frame, f"Uncalculated : {uncalculated_vehicles}", (20,100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,165,255),2)
+
 
     cv2.imshow("Vehicle Speed Estimation", frame)    
 
@@ -118,3 +121,21 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+
+
+#Ringkasan Akhir
+print()
+print("Laporan Akurasi Deteksi Kecepatan")
+final_total = len(all_tracked_ids)
+final_calculated = len(vehicle_speeds)
+final_uncalculated = final_total - final_calculated
+
+print(f"Total Kendaraan Terdeteksi (ID Unik)    : {final_total}")
+print(f"Berhasil Dihitung Kecepatannya          : {final_calculated}")
+print(f"Gagal / Tidak Selesai Dihitung          : {final_uncalculated}")
+
+if final_total > 0 :
+    akurasi = (final_calculated / final_total) * 100
+    print(f"Tingkat keberhasilan deteksi (success rate)    : {akurasi:.2f}%")
+else : 
+    print("Tidak ada kendaraan yang terdeteksi")
