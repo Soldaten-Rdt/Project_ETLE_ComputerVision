@@ -27,3 +27,6 @@ Isi Google Drive meliputi:
 2. `Laporan_CV.pdf` & `CVL_Final Project.pdf` - Laporan PPT dan juga Dokumen mengenai project ini
 3. `Video Presentasi Final Project Deteksi Kecepatan.mp4` (125.3 MB) - Video pemaparan hasil akhir proyek.
 4. Salinan *source code* dan *weights* (`best.pt`) untuk *backup*.
+5. `Panjang Marka Jalan.pdf` - Berisi justifikasi dari panjang marka jalan yang dijadikan patokan algoritma deteksi kami
+6. 
+ 
