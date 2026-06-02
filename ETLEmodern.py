@@ -88,7 +88,7 @@ while True:
             box_color = (0 ,255, 0)
 
             if track_id in vehicle_speeds:
-                if vehicle_speeds[track_id] > 60 : 
+                if vehicle_speeds[track_id] > 80: 
                     box_color = (0, 0, 255)
 
                 speed_text = f'ID: {int(track_id)} Speed: {vehicle_speeds[track_id]:.2f} km/h'
